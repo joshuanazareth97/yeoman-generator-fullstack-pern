@@ -2,6 +2,7 @@
 const Generator = require("yeoman-generator");
 const chalk = require("chalk");
 const yosay = require("yosay");
+const glob = require("glob");
 
 module.exports = class extends Generator {
   prompting() {
@@ -17,7 +18,8 @@ module.exports = class extends Generator {
       {
         type: "string",
         name: "projectDescription",
-        message: "What is the name of the project?"
+        message: "Briefly describe it:",
+        default: process.env.npm_package_description
       },
       {
         type: "string",
@@ -39,21 +41,36 @@ module.exports = class extends Generator {
     });
   }
 
-  writing() {
-    this.fs.copyTpl(
-      this.templatePath("react-frontend/**"),
-      this.destinationPath(`frontend.${this.props.projectName}`),
-      this.props
-    );
+  _generateFiles(source, destination) {
+    const files = glob.sync(`${this.templatePath(source)}/**`, { dot: true });
+    for (let file of files) {
+      const fileStub = file.replace(this.templatePath(source), "");
+      if (fileStub) {
+        this.fs.copyTpl(
+          file,
+          this.destinationPath(
+            `${destination}.${this.props.projectName}`,
+            fileStub
+          ),
+          this.props
+        );
+      }
+    }
   }
 
-  install() {
-    this.installDependencies({
-      npm: true,
-      bower: false
-    });
+  writing() {
+    this._generateFiles("frontend", "frontend");
+    this._generateFiles("base", "");
   }
+
+  install() {}
+
   end() {
-    this.log(yosay(chalk.blue(`Happy hacking!`)));
+    this.spawnCommand("git", ["init"]);
+    this.log(
+      yosay(`${chalk.blue("Happy hacking!")}
+    \nrun \`docker-compose up\` to check if everythinng was set up correctly. 
+    `)
+    );
   }
 };

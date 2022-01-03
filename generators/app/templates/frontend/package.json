@@ -1,5 +1,5 @@
 {
-  "name": "react_frontend",
+  "name": "frontend.<%= projectName %>",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

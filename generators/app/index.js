@@ -3,29 +3,51 @@ const Generator = require("yeoman-generator");
 const chalk = require("chalk");
 const yosay = require("yosay");
 const glob = require("glob");
+const { exec } = require("child_process");
+
+const execAsync = command =>
+  new Promise((resolve, reject) => {
+    exec(command, (err, stdout, stderr) => {
+      if (err) reject(err);
+      if (stderr) reject(stderr);
+      if (stdout) resolve(stdout);
+    });
+  });
 
 module.exports = class extends Generator {
-  prompting() {
+  async prompting() {
     // Have Yeoman greet the user.
     this.log(yosay(`Welcome to the ${chalk.red("PERN fullstack")} generator!`));
-
+    const un = await execAsync("git config --get user.name");
+    const email = await execAsync("git config --get user.email");
     const prompts = [
       {
         type: "string",
         name: "projectName",
-        message: "What is the name of the project?"
+        message: "What is the name of the project?",
+        required: true
       },
       {
         type: "string",
         name: "projectDescription",
         message: "Briefly describe it:",
-        default: process.env.npm_package_description
+        required: true,
+        default:
+          "A dockerised full stack application using PgSQL, Express and React."
       },
       {
         type: "string",
         name: "author",
         message: "Who is the author of this project?",
-        default: "Joshua"
+        required: true,
+        default: un.trim()
+      },
+      {
+        type: "string",
+        name: "email",
+        message: "What is their email address?",
+        required: true,
+        default: email.trim()
       },
       {
         type: "confirm",
@@ -38,22 +60,30 @@ module.exports = class extends Generator {
     return this.prompt(prompts).then(props => {
       // To access props later use this.props.someAnswer;
       this.props = props;
+      this.log(props);
     });
   }
 
   _generateFiles(source, destination) {
     const files = glob.sync(`${this.templatePath(source)}/**`, { dot: true });
     for (let file of files) {
-      const fileStub = file.replace(this.templatePath(source), "");
+      const fileStub = file
+        .replace(this.templatePath(source), "")
+        .replace("/", "");
       if (fileStub) {
-        this.fs.copyTpl(
-          file,
-          this.destinationPath(
-            `${destination}.${this.props.projectName}`,
-            fileStub
-          ),
-          this.props
-        );
+        if (destination) {
+          this.fs.copyTpl(
+            file,
+            this.destinationPath(
+              `${destination}.${this.props.projectName}`,
+              fileStub
+            ),
+            this.props
+          );
+        } else {
+          this.log(this.destinationPath(fileStub));
+          this.fs.copyTpl(file, this.destinationPath(fileStub), this.props);
+        }
       }
     }
   }
@@ -63,10 +93,12 @@ module.exports = class extends Generator {
     this._generateFiles("base", "");
   }
 
-  install() {}
+  install() {
+    this.spawnCommand("git", ["init"]);
+    this.spawnCommand("npm", ["run", "install_subpackages"]);
+  }
 
   end() {
-    this.spawnCommand("git", ["init"]);
     this.log(
       yosay(`${chalk.blue("Happy hacking!")}
     \nrun \`docker-compose up\` to check if everythinng was set up correctly. 

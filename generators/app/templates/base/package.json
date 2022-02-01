@@ -1,0 +1,13 @@
+{
+  "name": "<%= projectName %>",
+  "version": "1.0.0",
+  "author": "<%= author %>", 
+  "email":  "<%= email %>",
+  "description": "<%= projectDescription %>",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install_subpackages": "sh ./install_deps.sh"
+  },
+  "license": "ISC"
+}
